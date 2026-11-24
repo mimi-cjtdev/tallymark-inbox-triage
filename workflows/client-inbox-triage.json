@@ -1,0 +1,1000 @@
+{
+  "name": "Tallymark – Client Inbox Triage",
+  "nodes": [
+    {
+      "parameters": {
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyX",
+              "value": 5,
+              "unit": "minutes"
+            }
+          ]
+        },
+        "simple": false,
+        "filters": {
+          "q": "-label:triage-processed"
+        },
+        "options": {
+          "downloadAttachments": false
+        }
+      },
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        256
+      ],
+      "id": "6df73e0c-be83-40a4-9b17-13b32ce9517a",
+      "name": "Gmail Trigger",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "c9ca2044-a921-4093-bd4f-b769ceefbbd1",
+              "name": "sender_email",
+              "value": "={{ $json.from.value[0].address.toLowerCase() }}",
+              "type": "string"
+            },
+            {
+              "id": "ea6e0008-89f5-443c-916f-c8cf202e8699",
+              "name": "sender_name",
+              "value": "={{ $json.from.value[0].name }}",
+              "type": "string"
+            },
+            {
+              "id": "1a8886b5-9cbf-4fdb-a444-e238e5988d72",
+              "name": "subject",
+              "value": "={{ $json.subject }}",
+              "type": "string"
+            },
+            {
+              "id": "ebfb10cb-04a6-4374-8275-4dff403fa451",
+              "name": "body",
+              "value": "={{ ($json.text || '').slice(0, 3000) }}",
+              "type": "string"
+            },
+            {
+              "id": "87287455-340a-4a4c-b81e-32ca6feab10f",
+              "name": "message_id",
+              "value": "={{ $json.id }}",
+              "type": "string"
+            },
+            {
+              "id": "d463a504-d91b-498f-bf4b-892fbfb81b35",
+              "name": "thread_id",
+              "value": "={{ $json.threadId }}",
+              "type": "string"
+            },
+            {
+              "id": "ee17f9b2-1850-4e7f-b3ed-01340329dfb4",
+              "name": "received_at",
+              "value": "={{ $json.date }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        224,
+        256
+      ],
+      "id": "59074ad5-102d-4ae8-8c0b-7843771c7508",
+      "name": "Extract Email Info"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_CLIENT_DIRECTORY_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Tallymark Client Directory",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_CLIENT_DIRECTORY_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_CLIENT_DIRECTORY_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        448,
+        144
+      ],
+      "id": "674fe206-f75e-41c4-93c5-1747be13b999",
+      "name": "Read Clients",
+      "executeOnce": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h8mN7Yq0cVLrkpCB",
+          "name": "Tallymark Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "combine",
+        "advanced": true,
+        "mergeByFields": {
+          "values": [
+            {
+              "field1": "email",
+              "field2": "sender_email"
+            }
+          ]
+        },
+        "joinMode": "enrichInput2",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        672,
+        256
+      ],
+      "id": "3d9a9141-8e06-4a92-b951-19eb41270138",
+      "name": "Match Client"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "4afa55eb-b895-4f27-b910-07d15d195772",
+              "name": "client_name",
+              "value": "={{ $json.client_name || 'New / Unknown' }}",
+              "type": "string"
+            },
+            {
+              "id": "3963b1bf-49a5-47e3-b2e6-a71da3657f1d",
+              "name": "is_known_client",
+              "value": "={{ !!$json.client_name }}",
+              "type": "boolean"
+            },
+            {
+              "id": "db254b35-863a-46dd-8bbe-93c65cee20af",
+              "name": "drive_folder_id",
+              "value": "={{ $json.drive_folder_id || 'YOUR_UNSORTED_FOLDER_ID' }}",
+              "type": "string"
+            }
+          ]
+        },
+        "includeOtherFields": true,
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        896,
+        256
+      ],
+      "id": "c22163c1-3efe-4990-b53d-4ddf690abd05",
+      "name": "Client Context"
+    },
+    {
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "gpt-4.1-mini",
+          "mode": "list",
+          "cachedResultName": "GPT-4.1-MINI"
+        },
+        "responses": {
+          "values": [
+            {
+              "role": "system",
+              "content": "You are the inbox triage assistant for Tallymark Accounting, a small CPA firm that handles bookkeeping, tax preparation and payroll for small businesses.\n\nClassify the email into exactly ONE category:\n- document_submission: the client is sending or sharing documents (bank statements, receipts, tax forms, payroll records).\n- billing_question: questions about invoices, fees, payments, refunds or payment methods.\n- new_client_inquiry: a prospective client asking about services, pricing or onboarding.\n- urgent_deadline: an imminent deadline, tax notice, penalty, audit letter, or anything needing action within 48 hours. This category takes priority over all others.\n- other: thank-you notes, newsletters, spam or anything that fits none of the above.\n\nThen write a short reply draft:\n- Greet the sender by first name.\n- Professional, warm, 3–5 sentences.\n- Do not give tax or legal advice, and do not promise specific dates or amounts.\n- Sign off as \"Tallymark Accounting Team\".\n\nReturn ONLY valid JSON with these keys:\n{\n  \"category\": \"document_submission | billing_question | new_client_inquiry | urgent_deadline | other\",\n  \"priority\": \"high | normal | low\",\n  \"summary\": \"one sentence describing what the sender needs\",\n  \"reply_draft\": \"the reply text\",\n  \"confidence\": 0.0 to 1.0\n}"
+            },
+            {
+              "content": "=Sender: {{ $json.sender_name }} <{{ $json.sender_email }}>\nKnown client: {{ $json.is_known_client }} ({{ $json.client_name }})\nAccount manager: {{ $json.account_manager || 'Unassigned' }}\nSubject: {{ $json.subject }}\n\nBody:\n{{ $json.body }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {
+          "textFormat": {
+            "textOptions": {
+              "type": "json_object"
+            }
+          },
+          "temperature": 0.2
+        }
+      },
+      "type": "@n8n/n8n-nodes-langchain.openAi",
+      "typeVersion": 2.3,
+      "position": [
+        1120,
+        256
+      ],
+      "id": "8d57134f-a51d-4d16-8e4b-f55ad528892a",
+      "name": "Classify Email",
+      "alwaysOutputData": false,
+      "retryOnFail": true,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "openAiApi": {
+          "id": "7ep1MiPSQwiVdDbR",
+          "name": "Tallymark OpenAI"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "raw",
+        "jsonOutput": "={{ JSON.stringify(Object.assign({}, $('Client Context').item.json, typeof $json.output[0].content[0].text === 'string' ? JSON.parse($json.output[0].content[0].text) : $json.output[0].content[0].text)) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1472,
+        256
+      ],
+      "id": "e442d073-adcb-4da5-840c-8e678d0db4e4",
+      "name": "Parse AI Result"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "document_submission",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "ba78a2ff-8372-4813-a003-2e5ba8cc4ef6"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Documents"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "70fb8761-45ff-498a-a399-d6d94101288c",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "billing_question",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Billing"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "39d16d83-19dd-4f5a-912b-73d1ef728915",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "new_client_inquiry",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "New Client"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 4
+                },
+                "conditions": [
+                  {
+                    "id": "cda6fcee-fdd5-4895-ab58-b6f3d87f3bd3",
+                    "leftValue": "={{ $json.category }}",
+                    "rightValue": "urgent_deadline",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Urgent"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.5,
+      "position": [
+        1696,
+        208
+      ],
+      "id": "93e93643-f400-476a-9c2f-f5945b8abcd4",
+      "name": "Route by Category"
+    },
+    {
+      "parameters": {
+        "operation": "get",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "simple": false,
+        "options": {
+          "downloadAttachments": true
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2368,
+        -240
+      ],
+      "id": "d921a259-979f-421a-ab59-d013b47d77bc",
+      "name": "Get Attachments",
+      "webhookId": "8031b1f6-aaef-4f00-8abc-7cb02355e6ff",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const out = [];\n\n$input.all().forEach((item, i) => {\n  // Get the client info for this email\n  const ctx = $('Parse AI Result').itemMatching(i).json;\n\n  // One output item per attachment\n  for (const key of Object.keys(item.binary || {})) {\n    out.push({\n      json: {\n        file_name: item.binary[key].fileName,\n        drive_folder_id: ctx.drive_folder_id,\n        client_name: ctx.client_name,\n        message_id: ctx.message_id,\n      },\n      binary: { data: item.binary[key] },\n      pairedItem: { item: i },\n    });\n  }\n});\n\nreturn out;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2592,
+        -240
+      ],
+      "id": "f6d25ad9-9ab4-4292-9dda-ebfaef61446f",
+      "name": "Split Files"
+    },
+    {
+      "parameters": {
+        "name": "={{ $now.toFormat('yyyy-MM-dd') }} - {{ $json.file_name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "={{ $json.drive_folder_id }}",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        2816,
+        -240
+      ],
+      "id": "4e8f662e-1318-45a8-b423-18ad57ce8b01",
+      "name": "Save to Drive",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "aJ3MrptisdtT2gCC",
+          "name": "Tallymark Google Drive"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_LABEL_ID_BILLING"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        16
+      ],
+      "id": "f095d516-7f04-4c03-9195-d0a7f46da6dc",
+      "name": "Label: Billing",
+      "webhookId": "17571a58-c186-4e75-a2f7-e2bf9d32a40f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_LABEL_ID_NEW_CLIENT"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        208
+      ],
+      "id": "b05571f0-bc96-4686-a84e-c0f136dc3c7e",
+      "name": "Label: New Client",
+      "webhookId": "ed46093f-98ec-4078-8af1-259d34a1f432",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_LABEL_ID_URGENT"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        400
+      ],
+      "id": "01824722-de27-4d3e-8288-db965c59dd0c",
+      "name": "Label: Urgent",
+      "webhookId": "c078a6a3-18b8-4744-b31a-c517f450f35a",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_LABEL_ID_DOCUMENTS"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2128,
+        -160
+      ],
+      "id": "6d5527c2-4bde-457b-8fe2-62ce8f172737",
+      "name": "Label: Documents",
+      "webhookId": "841d6bdd-5b09-472e-94d5-66d2c59f9616",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "draft",
+        "subject": "=Re: {{ $('Parse AI Result').item.json.subject }}",
+        "message": "={{ $('Parse AI Result').item.json.reply_draft }}",
+        "options": {
+          "threadId": "={{ $('Parse AI Result').item.json.thread_id }}",
+          "sendTo": "={{ $('Parse AI Result').item.json.sender_email }}"
+        }
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2736,
+        208
+      ],
+      "id": "ffa670d8-5d61-4b30-a6a9-a88476d85f45",
+      "name": "Create Reply Draft",
+      "webhookId": "28169c3e-386f-4f9e-9f92-533e76d28c3f",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "addLabels",
+        "messageId": "={{ $('Parse AI Result').item.json.message_id }}",
+        "labelIds": [
+          "YOUR_LABEL_ID_PROCESSED"
+        ]
+      },
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2928,
+        288
+      ],
+      "id": "d11b2589-33a4-4271-84c2-38ac99f064bb",
+      "name": "Mark Processed",
+      "webhookId": "a40bc235-25c7-4457-abed-3833a44f81b7",
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "V8EtRJlRNjm4Hnry",
+          "name": "Tallymark Gmail"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TRIAGE_LOG_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Tallymark Triage Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_TRIAGE_LOG_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_TRIAGE_LOG_SHEET_ID/edit#gid=0"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "logged_at": "={{ $now.toFormat('yyyy-MM-dd HH:mm') }}",
+            "received_at": "={{ DateTime.fromISO($('Parse AI Result').item.json.received_at).setZone('Asia/Manila').toFormat('yyyy-MM-dd HH:mm') }}",
+            "client_name": "={{ $('Parse AI Result').item.json.client_name }}",
+            "sender_email": "={{ $('Parse AI Result').item.json.sender_email }}",
+            "subject": "={{ $('Parse AI Result').item.json.subject }}",
+            "category": "={{ $('Parse AI Result').item.json.category }}",
+            "priority": "={{ $('Parse AI Result').item.json.priority }}",
+            "summary": "={{ $('Parse AI Result').item.json.summary }}",
+            "account_manager": "={{ $('Parse AI Result').item.json.account_manager || 'Unassigned' }}",
+            "confidence": "={{ $('Parse AI Result').item.json.confidence }}"
+          },
+          "matchingColumns": [],
+          "schema": [
+            {
+              "id": "logged_at",
+              "displayName": "logged_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "client_name",
+              "displayName": "client_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "sender_email",
+              "displayName": "sender_email",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subject",
+              "displayName": "subject",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "category",
+              "displayName": "category",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "priority",
+              "displayName": "priority",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "summary",
+              "displayName": "summary",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "account_manager",
+              "displayName": "account_manager",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "confidence",
+              "displayName": "confidence",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3104,
+        288
+      ],
+      "id": "bc78de8b-8253-444e-bee7-374941c4e95f",
+      "name": "Log to Sheet",
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h8mN7Yq0cVLrkpCB",
+          "name": "Tallymark Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=🚨 *Urgent client email*\n*Client:* {{ $('Parse AI Result').item.json.client_name }} ({{ $('Parse AI Result').item.json.sender_email }})\n*Subject:* {{ $('Parse AI Result').item.json.subject }}\n*Summary:* {{ $('Parse AI Result').item.json.summary }}\n*Account manager:* {{ $('Parse AI Result').item.json.account_manager || 'Unassigned' }}\nA reply draft is ready in Gmail → Triage/Urgent.",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        2336,
+        512
+      ],
+      "id": "a7e73433-13ba-44e7-9066-5b5f2820e3d8",
+      "name": "Slack Urgent Alert",
+      "webhookId": "3ebbbf97-397e-4d5f-a46a-16c96d76611e",
+      "credentials": {
+        "slackApi": {
+          "id": "JEHHIvQSLZT2J3SE",
+          "name": "Tallymark Slack"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Extract Email Info",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Email Info": {
+      "main": [
+        [
+          {
+            "node": "Read Clients",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Match Client",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Read Clients": {
+      "main": [
+        [
+          {
+            "node": "Match Client",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Match Client": {
+      "main": [
+        [
+          {
+            "node": "Client Context",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Client Context": {
+      "main": [
+        [
+          {
+            "node": "Classify Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Classify Email": {
+      "main": [
+        [
+          {
+            "node": "Parse AI Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse AI Result": {
+      "main": [
+        [
+          {
+            "node": "Route by Category",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route by Category": {
+      "main": [
+        [
+          {
+            "node": "Label: Documents",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Label: Billing",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Label: New Client",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Label: Urgent",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Attachments": {
+      "main": [
+        [
+          {
+            "node": "Split Files",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split Files": {
+      "main": [
+        [
+          {
+            "node": "Save to Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label: Documents": {
+      "main": [
+        [
+          {
+            "node": "Get Attachments",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Reply Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label: Billing": {
+      "main": [
+        [
+          {
+            "node": "Create Reply Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label: New Client": {
+      "main": [
+        [
+          {
+            "node": "Create Reply Draft",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label: Urgent": {
+      "main": [
+        [
+          {
+            "node": "Create Reply Draft",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Slack Urgent Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create Reply Draft": {
+      "main": [
+        [
+          {
+            "node": "Mark Processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save to Drive": {
+      "main": [
+        []
+      ]
+    },
+    "Mark Processed": {
+      "main": [
+        [
+          {
+            "node": "Log to Sheet",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "errorWorkflow": "aimOjDzcqZTchLZf",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "versionId": "9df27e42-1f71-4e0f-8640-7eee4ed479b5",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6a5756de89c5197ebecd8fc929900c30f7344c3aa38cd2314763af9dbeaf225c"
+  },
+  "nodeGroups": [],
+  "id": "tqoTCRpaimZfRSoI",
+  "tags": []
+}

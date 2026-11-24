@@ -1,0 +1,154 @@
+{
+  "name": "Tallymark – Daily Inbox Digest",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 17
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        0,
+        0
+      ],
+      "id": "ad99e654-e3f4-4539-8902-b9564a8f58d6",
+      "name": "Schedule Trigger"
+    },
+    {
+      "parameters": {
+        "documentId": {
+          "__rl": true,
+          "value": "YOUR_TRIAGE_LOG_SHEET_ID",
+          "mode": "list",
+          "cachedResultName": "Tallymark Triage Log",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_TRIAGE_LOG_SHEET_ID/edit?usp=drivesdk"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "gid=0",
+          "mode": "list",
+          "cachedResultName": "Sheet1",
+          "cachedResultUrl": "https://docs.google.com/spreadsheets/d/YOUR_TRIAGE_LOG_SHEET_ID/edit#gid=0"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "b5b52b87-6f85-4593-9f52-32aab05e1a96",
+      "name": "Read Triage Log",
+      "alwaysOutputData": true,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "h8mN7Yq0cVLrkpCB",
+          "name": "Tallymark Google Sheets"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const today = $now.setZone('Asia/Manila').toFormat('yyyy-MM-dd');\nconst rows = $input.all()\n  .map(i => i.json)\n  .filter(r => String(r.logged_at || '').startsWith(today));\n\nconst labels = {\n  urgent_deadline: '🚨 Urgent',\n  document_submission: '📄 Documents',\n  billing_question: '💰 Billing',\n  new_client_inquiry: '🆕 New client inquiries',\n  other: '📭 Other',\n};\n\n// Count emails per category\nconst counts = {};\nfor (const r of rows) counts[r.category] = (counts[r.category] || 0) + 1;\n\nlet text = `*Tallymark inbox digest – ${$now.setZone('Asia/Manila').toFormat('ccc, LLL d')}*\\n`;\n\nif (rows.length === 0) {\n  text += 'No client emails today. 🎉';\n} else {\n  text += `${rows.length} emails triaged today\\n\\n`;\n  for (const [key, label] of Object.entries(labels)) {\n    if (counts[key]) text += `${label}: ${counts[key]}\\n`;\n  }\n\n  const urgent = rows.filter(r => r.category === 'urgent_deadline');\n  if (urgent.length) {\n    text += `\\n*Urgent – needs follow-up:*\\n`;\n    urgent.forEach(r => text += `• ${r.client_name}: ${r.summary} (${r.account_manager})\\n`);\n  }\n\n  const leads = rows.filter(r => r.category === 'new_client_inquiry');\n  if (leads.length) {\n    text += `\\n*New leads:*\\n`;\n    leads.forEach(r => text += `• ${r.sender_email}: ${r.summary}\\n`);\n  }\n\n  text += `\\nReply drafts are waiting in Gmail for review.`;\n}\n\nreturn [{ json: { text } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        448,
+        0
+      ],
+      "id": "a0a06edb-213e-43aa-ae20-e5e5618fdb29",
+      "name": "Build Digest"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "={{ $json.text }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        624,
+        0
+      ],
+      "id": "edc1fe0c-9551-412b-b289-eea93b7aadbf",
+      "name": "Post Digest",
+      "webhookId": "5885d5bb-c421-461c-b13f-9a7d2bea3073",
+      "credentials": {
+        "slackApi": {
+          "id": "JEHHIvQSLZT2J3SE",
+          "name": "Tallymark Slack"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "Read Triage Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read Triage Log": {
+      "main": [
+        [
+          {
+            "node": "Build Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Digest": {
+      "main": [
+        [
+          {
+            "node": "Post Digest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true,
+    "timeSavedMode": "fixed",
+    "timezone": "Asia/Manila",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "aimOjDzcqZTchLZf"
+  },
+  "versionId": "a4f90ae8-eace-4679-af81-68d94a9b17d3",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6a5756de89c5197ebecd8fc929900c30f7344c3aa38cd2314763af9dbeaf225c"
+  },
+  "nodeGroups": [],
+  "id": "E1dsAQrkexeEtU6H",
+  "tags": []
+}

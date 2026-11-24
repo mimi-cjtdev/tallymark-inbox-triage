@@ -1,0 +1,73 @@
+{
+  "name": "Tallymark – Error Alert",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ],
+      "id": "cdc655f3-43ea-4eb2-97ee-7f39bb548414",
+      "name": "Error Trigger"
+    },
+    {
+      "parameters": {
+        "select": "channel",
+        "channelId": {
+          "__rl": true,
+          "value": "YOUR_SLACK_CHANNEL_ID",
+          "mode": "id"
+        },
+        "text": "=⚠️ *Automation failed:* {{ $json.workflow.name }}\n*Node:* {{ $json.execution.lastNodeExecuted }}\n*Error:* {{ $json.execution.error.message }}\n{{ $json.execution.url }}",
+        "otherOptions": {
+          "includeLinkToWorkflow": false
+        }
+      },
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.7,
+      "position": [
+        224,
+        0
+      ],
+      "id": "813f3f77-a2e5-438c-9584-cb827be5fc19",
+      "name": "Post Error Alert",
+      "webhookId": "1c6873e8-dd62-4bb3-a6b9-029857b0d55f",
+      "credentials": {
+        "slackApi": {
+          "id": "JEHHIvQSLZT2J3SE",
+          "name": "Tallymark Slack"
+        }
+      }
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Post Error Alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": true
+  },
+  "versionId": "9a49f3a8-b908-4792-8b66-f392f831d408",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "6a5756de89c5197ebecd8fc929900c30f7344c3aa38cd2314763af9dbeaf225c"
+  },
+  "nodeGroups": [],
+  "id": "aimOjDzcqZTchLZf",
+  "tags": []
+}
